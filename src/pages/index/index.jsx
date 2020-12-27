@@ -1,49 +1,75 @@
 import React, { Component } from 'react'
-import { View, Button, Text } from '@tarojs/components'
+import Taro, { eventCenter } from '@tarojs/taro'
+import { View, Swiper, SwiperItem } from '@tarojs/components'
 import { observer, inject } from 'mobx-react'
 
 import './index.less'
+import HomeList from '../../components/list'
 
-
-@inject('store')
+@inject('store')                    //该装饰器方便使用全局store， 避免层层传递
 @observer
 class Index extends Component {
-  componentWillMount () { }
 
-  componentDidMount () { }
+    constructor(props) {
+        super(props)
+        this.state = {
+            current: 0
+        }
+    }
 
-  componentWillUnmount () { }
+    componentDidMount () { }
 
-  componentDidShow () { }
+    componentWillUnmount () { }
 
-  componentDidHide () { }
+    componentDidShow () { }
 
-  increment = () => {
-    const { counterStore } = this.props.store
-    counterStore.increment()
-  }
+    componentDidHide () { }
 
-  decrement = () => {
-    const { counterStore } = this.props.store
-    counterStore.decrement()
-  }
+    // increment = () => {
+    //     const { counterStore } = this.props.store
+    //     counterStore.increment()
+    // }
+    handleAtTabBarClick = (data) => {
+        this.setState({
+            current: data
+        })
+        console.log(data)
+        Taro.redirectTo({
+            url: '/pages/thread_detail/thread_detail'
+        })
+    }
 
-  incrementAsync = () => {
-    const { counterStore } = this.props.store
-    counterStore.incrementAsync()
-  }
+    render () {
+        // const { counterStore: { counter } } = this.props.store
+        return (
+            <View className="index">
+                <View>
+                    <Swiper
+                        className='test-h'
+                        indicatorColor='#999'
+                        indicatorActiveColor='#333'
+                        // vertical
+                        circular
+                        indicatorDots
+                        autoplay>
+                        <SwiperItem>
+                            <View className='demo-text-1'>1</View>
+                        </SwiperItem>
+                        <SwiperItem>
+                            <View className='demo-text-2'>2</View>
+                        </SwiperItem>
+                        <SwiperItem>
+                            <View className='demo-text-3'>3</View>
+                        </SwiperItem>
+                    </Swiper>
+                </View>
+                <View>
+                    <HomeList />
+                </View>
 
-  render () {
-    const { counterStore: { counter } } = this.props.store
-    return (
-      <View className='index'>
-        <Button onClick={this.increment}>+</Button>
-        <Button onClick={this.decrement}>-</Button>
-        <Button onClick={this.incrementAsync}>Add Async</Button>
-        <Text>{counter}</Text>
-      </View>
-    )
-  }
+            </View>
+        )
+    }
 }
 
 export default Index
