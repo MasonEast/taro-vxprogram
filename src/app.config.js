@@ -10,6 +10,9 @@ export default {
         'pages/index/index',
         'pages/classify/classify',
         'pages/make_picture/make_picture',
+        'pages/make_picture/make_long_picture/make_long_picture',
+        'pages/make_picture/make_scrawl_picture/make_scrawl_picture',
+        // 'pages/make_picture/make_picture/make_picture',
         'pages/personal_center/personal_center'
     ],
     window: {
