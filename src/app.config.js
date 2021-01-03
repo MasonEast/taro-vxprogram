@@ -12,7 +12,7 @@ export default {
         'pages/make_picture/make_picture',
         'pages/make_picture/make_long_picture/make_long_picture',
         'pages/make_picture/make_scrawl_picture/make_scrawl_picture',
-        // 'pages/make_picture/make_picture/make_picture',
+        'pages/make_picture/make_move_picture/make_move_picture',
         'pages/personal_center/personal_center'
     ],
     window: {

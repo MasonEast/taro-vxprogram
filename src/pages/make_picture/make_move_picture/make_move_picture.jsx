@@ -1,10 +1,32 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Button, Canvas, CoverView } from '@tarojs/components'
 import { AtNavBar } from 'taro-ui'
 import Taro, { getImageInfo, createCanvasContext } from '@tarojs/taro'
+import GIF from 'gif.js'
 
 import './index.less'
-import { useEffect } from 'react'
+
+var gif = new GIF({
+    workers: 2,
+    quality: 10
+});
+
+//   // add an image element
+//   gif.addFrame(imageElement);
+
+//   // or a canvas element
+//   gif.addFrame(canvasElement, {delay: 200});
+
+//   // or copy the pixels from a canvas context
+//   gif.addFrame(ctx, {copy: true});
+
+//   gif.on('finished', function(blob) {
+//     window.open(URL.createObjectURL(blob));
+//   });
+
+//   gif.render();
+
+
 
 export default function HomeList () {
 
@@ -116,3 +138,4 @@ export default function HomeList () {
         </View>
     )
 }
+
