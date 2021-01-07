@@ -1,85 +1,106 @@
-import React, { useRef, useState } from 'react'
-import { View, Text, Input, Button } from '@tarojs/components'
+import React, { useState } from 'react'
+import { View, Button, Canvas, CoverView } from '@tarojs/components'
 import { AtNavBar } from 'taro-ui'
-import Taro from '@tarojs/taro'
+import Taro, { getImageInfo, createCanvasContext } from '@tarojs/taro'
 
 import './index.less'
+import { useEffect } from 'react'
 
-// 拼出来的图片的宽度
-const width = document.body.clientWidth
-// 拼出来的图片的质量，0-1之间，越大质量越好
-const encoderOptions = 1
+let arr = []
 
 export default function HomeList () {
 
-    const uploadRef = new useRef()
-    const containerRef = new useRef()
-    const [containerShow, setContainerShow] = useState('')
-    const [imageUrl, setImageUrl] = useState('')
+    const [canvasStyle, setCanvasStyle] = useState({})
+    const [systemScreen, setSystemScreen] = useState({})
+    const [isPen, setIsPen] = useState(false)
+    const [penPath, setPenPath] = useState([])
+    const [imgStyle, setImgStyle] = useState({})
+
+    const ctx = createCanvasContext('myCanvas')
+
+
+    useEffect(() => {
+        Taro.getSystemInfo({
+            success: res => {
+                setSystemScreen({
+                    sWidth: res.screenWidth,
+                    sHeight: res.screenHeight
+                })
+            }
+        })
+
+    }, [])
 
     const handleUpload = () => {
-        uploadRef.current.click()
-    }
-
-    const handleSave = () => {
-        const downloadEl = document.createElement('a')
-        downloadEl.style.display = 'none'
-        downloadEl.href = imageUrl
-        downloadEl.download = '长图.jpeg';
-        // 触发点击
-        document.body.appendChild(downloadEl);
-        downloadEl.click();
-        // 然后移除
-        document.body.removeChild(downloadEl);
-    }
-
-    const handleChange = (e) => {
-        e.persist()
-        const files = Array.from(e.target.files)
-        const length = files.length
-        let instances = []
-        let finished = 0
-
-        // 根据图片文件拿到图片实例
-        files.forEach((file, index) => {
-            const reader = new FileReader()
-            // 把文件读为 dataUrl
-            reader.readAsDataURL(file)
-            reader.onload = e => {
-                const image = new Image()
-                image.src = e.target.result
-                image.onload = () => {
-                    // 图片实例化成功后存起来
-                    instances[index] = image
-                    finished++
-                    if (finished === length) {
-                        drawImages(instances)
-                    }
+        // const ctx = createCanvasContext('myCanvas')
+        Taro.chooseImage({
+            count: 1, // 默认9
+            sizeType: ['original', 'compressed'], // 可以指定是原图还是压缩图，默认二者都有
+            sourceType: ['album', 'camera'], // 可以指定来源是相册还是相机，默认二者都有，在H5浏览器端支持使用 `user` 和 `environment`分别指定为前后摄像头
+            success: async function (res) {
+                // 返回选定照片的本地文件路径列表，tempFilePath可以作为img标签的src属性显示图片
+                var tempFilePaths = res.tempFilePaths
+                let x = 0, y = 0, heights = []
+                // const heights = tempFilePaths.map(item => width / item.width * item.height)
+                for (let i = 0; i < tempFilePaths.length; i++) {
+                    await getImageInfo({
+                        src: tempFilePaths[i],
+                        success: function (res) {
+                            const { width, height } = res
+                            const { sWidth, sHeight } = systemScreen
+                            const h = sWidth / width * height
+                            Taro.getSystemInfo
+                            ctx.drawImage(tempFilePaths[i], 0, y, sWidth, h)
+                            y += h
+                            setImgStyle({
+                                width: sWidth,
+                                height: h
+                            })
+                        }
+                    })
                 }
+                console.log(x, y)
+                setCanvasStyle({
+                    width: systemScreen.sWidth,
+                    height: y
+                })
+                ctx.draw(false, setTimeout(() => {
+                    Taro.canvasToTempFilePath({
+                        width: systemScreen.sWidth,
+                        height: y,
+                        destWidth: 2 * systemScreen.sWidth,
+                        destHeight: 2 * y,
+                        canvasId: 'myCanvas',
+                        success: function (res) {
+                            setPenPath(penPath => {
+                                penPath.push(res.tempFilePath)
+                                return penPath
+                            })
+                        }
+                    })
+                }, 1000))
             }
         })
     }
 
-    // 拼图
-    const drawImages = (images) => {
-        const heights = images.map(item => width / item.width * item.height)
-        const canvas = document.createElement('canvas')
-        canvas.width = width
-        canvas.height = heights.reduce((total, current) => total + current)
-        const context = canvas.getContext('2d')
-
-        let y = 0, finalImageUrl = ''
-
-        images.forEach((item, index) => {
-            const height = heights[index]
-            context.drawImage(item, 0, y, width, height)
-            y += height
-        })
-
-        finalImageUrl = canvas.toDataURL('image/jpeg', encoderOptions)
-
-        setImageUrl(finalImageUrl)
-        setContainerShow(<img src={finalImageUrl} />)
+    const handleSave = () => {
+        Taro.getImageInfo({
+            src: penPath[penPath.length - 1],
+            success (result) {
+                console.log(33, result)
+                if (result.path) {
+                    Taro.saveImageToPhotosAlbum({
+                        filePath: result.path
+                    }).then(getImageInfoResult => {
+                        if (getImageInfoResult.errMsg === 'saveImageToPhotosAlbum:ok') {
+                            // toast('已成功保存至相册！');
+                        } else {
+                            // toast('图片保存失败！');
+                        }
+                    });
+                }
+            }
+        });
     }
 
     const handleClick = () => {
@@ -88,20 +109,77 @@ export default function HomeList () {
         })
     }
 
+    const handleTouchStart = (e) => {
+        arr = []
+    }
+
+    const handleTouchMove = (e) => {
+        arr.push([e.touches[0].x, e.touches[0].y])
+        ctx.setStrokeStyle('red')
+        ctx.setLineJoin('round')
+        ctx.setLineWidth(5)
+        ctx.beginPath();
+        arr.length > 1 && ctx.moveTo(arr[arr.length - 2][0], arr[arr.length - 2][1]);
+        ctx.lineTo(arr[arr.length - 1][0], arr[arr.length - 1][1]);
+        ctx.closePath();
+        ctx.stroke();  //描边
+
+    }
+
+    const handleTOuchEnd = () => {
+        ctx.draw(true, setTimeout(() => {
+            Taro.canvasToTempFilePath({
+                canvasId: 'myCanvas',
+                success: function (res) {
+                    console.log(penPath)
+                    setPenPath(penPath => {
+                        penPath.push(res.tempFilePath)
+                        return penPath
+                    })
+                }
+            })
+        }, 10))
+    }
+
+    const recallClick = (e) => {
+        let step = penPath.length - 1
+        const { width, height } = imgStyle
+        if (step > 0) {
+            step--;
+            ctx.drawImage(penPath[step], 0, 0, width, height);
+            ctx.draw()
+            setPenPath(penPath => {
+                penPath.pop()
+                return penPath
+            })
+        } else {
+            console.log('不能再继续撤销了');
+        }
+
+    }
+
     return (
         <View>
             <AtNavBar
                 onClickLeftIcon={handleClick}
                 color='#000'
-                title='涂鸦'
+                title='长图制作'
                 leftText='返回'
             />
-            <View ref={containerRef}>
-                {containerShow}
-            </View>
-            <input ref={uploadRef} onChange={handleChange} id='upload-input' type="file" accept="image/*" multiple="multiple" />
-            <Button className='button_circle button_left' onClick={handleUpload}>上传</Button>
-            <Button className='button_circle button_right' onClick={handleSave}>保存</Button>
+            <Canvas
+                id="myCanvas"
+                canvasId='myCanvas'
+                style={canvasStyle}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTOuchEnd}
+            ></Canvas>
+            <CoverView className='button_cotainer'>
+                <Button className='button_circle button_left' onClick={handleUpload}>上传</Button>
+                <Button className='button_circle button_right' onClick={() => setIsPen(true)}>画笔</Button>
+                <Button className='button_circle button_right' onClick={recallClick}>撤回</Button>
+                <Button className='button_circle button_right' onClick={handleSave}>保存</Button>
+            </CoverView>
         </View>
     )
 }
