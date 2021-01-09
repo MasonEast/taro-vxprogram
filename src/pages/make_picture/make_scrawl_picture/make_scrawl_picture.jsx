@@ -163,7 +163,7 @@ export default function HomeList () {
             <AtNavBar
                 onClickLeftIcon={handleClick}
                 color='#000'
-                title='长图制作'
+                title='涂鸦'
                 leftText='返回'
             />
             <Canvas
